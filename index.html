@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>The Long Gallery — A Walk Through Art History</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Archivo:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16130f; --bone:#ece5d6; --brass:#b08d3e; --brass-dim:#7d6530;
+    --glass:rgba(18,15,11,.82); --hairline:rgba(236,229,214,.28);
+    --ok:#7fae6a; --bad:#c05a4e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--ink);
+    font-family:'Archivo',sans-serif;color:var(--bone)}
+  #scene{position:fixed;inset:0}
+  .serif{font-family:'Cormorant Garamond',Georgia,serif}
+
+  /* ---------- entry / menu overlay ---------- */
+  #menu{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%, rgba(30,25,18,.88), rgba(10,8,6,.97));
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+    z-index:40;text-align:center;cursor:pointer;transition:opacity .5s}
+  #menu.hidden{opacity:0;pointer-events:none}
+  #menu .eyebrow{letter-spacing:.42em;font-size:11px;color:var(--brass);text-transform:uppercase}
+  #menu h1{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(40px,6vw,72px);
+    letter-spacing:.02em}
+  #menu .range{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:20px;opacity:.75}
+  #menu .rule{width:64px;height:1px;background:var(--brass);margin:6px 0}
+  #menu .controls{font-size:12.5px;letter-spacing:.08em;line-height:2.1;opacity:.8}
+  #menu .controls b{color:var(--brass);font-weight:600}
+  #menu .enter{margin-top:10px;border:1px solid var(--brass);padding:11px 34px;
+    letter-spacing:.3em;font-size:12px;text-transform:uppercase;color:var(--bone)}
+  #menu .enter:hover{background:var(--brass);color:var(--ink)}
+  #loadline{font-size:11px;letter-spacing:.15em;color:var(--brass);opacity:.9;min-height:16px}
+
+  /* ---------- HUD ---------- */
+  .hud{position:fixed;z-index:20;pointer-events:none}
+  #roomTag{top:22px;left:26px;transition:opacity .4s}
+  #roomTag .era{font-family:'Cormorant Garamond',serif;font-size:30px;letter-spacing:.04em}
+  #roomTag .years{font-size:11px;letter-spacing:.3em;color:var(--brass);text-transform:uppercase;margin-top:2px}
+  #hints{bottom:20px;right:24px;font-size:11px;letter-spacing:.12em;opacity:.55;text-align:right;line-height:1.9}
+  #hints b{color:var(--brass)}
+  #crosshair{top:50%;left:50%;width:4px;height:4px;border-radius:50%;
+    background:rgba(236,229,214,.55);transform:translate(-50%,-50%)}
+
+  /* ---------- plaque card ---------- */
+  #plaque{position:fixed;left:26px;bottom:26px;width:min(400px,40vw);z-index:25;
+    background:var(--glass);backdrop-filter:blur(8px);border:1px solid var(--hairline);
+    border-top:2px solid var(--brass);padding:20px 22px 18px;
+    opacity:0;transform:translateY(8px);transition:opacity .3s,transform .3s;pointer-events:none}
+  #plaque.show{opacity:1;transform:none}
+  #plaque .artist{font-size:11px;letter-spacing:.3em;text-transform:uppercase;color:var(--brass)}
+  #plaque .title{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:24px;margin:5px 0 2px}
+  #plaque .meta{font-size:11.5px;letter-spacing:.14em;opacity:.7;margin-bottom:10px}
+  #plaque .body{font-size:13px;line-height:1.62;opacity:.94;border-top:1px solid var(--hairline);padding-top:10px}
+  #plaque .credit{font-size:10px;opacity:.45;margin-top:10px;letter-spacing:.05em}
+
+  /* ---------- quiz ---------- */
+  #quizHud{top:22px;right:24px;text-align:right;font-size:12px;letter-spacing:.2em;
+    color:var(--brass);text-transform:uppercase;display:none}
+  #quiz{position:fixed;left:26px;bottom:26px;width:min(400px,40vw);z-index:26;
+    background:var(--glass);backdrop-filter:blur(8px);border:1px solid var(--hairline);
+    border-top:2px solid var(--brass);padding:20px 22px;display:none}
+  #quiz .q{font-family:'Cormorant Garamond',serif;font-size:20px;font-style:italic;margin-bottom:12px}
+  #quiz .opt{display:block;width:100%;text-align:left;background:none;border:1px solid var(--hairline);
+    color:var(--bone);font-family:'Archivo';font-size:13px;padding:9px 12px;margin-bottom:7px;cursor:pointer;
+    letter-spacing:.04em}
+  #quiz .opt b{color:var(--brass);margin-right:8px}
+  #quiz .opt:hover{border-color:var(--brass)}
+  #quiz .opt.right{border-color:var(--ok);color:var(--ok)}
+  #quiz .opt.wrong{border-color:var(--bad);color:var(--bad)}
+  #quiz .after{font-size:11px;letter-spacing:.1em;opacity:.6;margin-top:4px}
+
+  /* ---------- minimap ---------- */
+  #minimapWrap{top:70px;right:24px;z-index:20;border:1px solid var(--hairline);
+    background:rgba(12,10,8,.6);padding:6px}
+  #minimap{display:block}
+
+  /* ---------- timeline ---------- */
+  #timeline{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:min(880px,86vw);
+    height:58px;z-index:50;padding:0 14px}
+  #tlRail{position:absolute;left:14px;right:14px;top:26px;height:2px;
+    background:linear-gradient(90deg,var(--brass-dim),var(--brass),var(--brass-dim))}
+  .tlTick{position:absolute;top:20px;width:1px;height:14px;background:var(--hairline)}
+  .tlTickLabel{position:absolute;top:38px;font-size:9px;letter-spacing:.15em;color:var(--bone);
+    opacity:.45;transform:translateX(-50%)}
+  .tlDot{position:absolute;top:22px;width:9px;height:9px;border-radius:50%;
+    background:var(--ink);border:1.5px solid var(--brass);cursor:pointer;transform:translateX(-50%);
+    transition:transform .15s}
+  .tlDot:hover{transform:translateX(-50%) scale(1.7);background:var(--brass)}
+  .tlDot.here{background:var(--bone);border-color:var(--bone)}
+
+  #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:35;
+    background:var(--glass);border:1px solid var(--hairline);padding:8px 18px;font-size:12px;
+    letter-spacing:.15em;opacity:0;transition:opacity .3s;pointer-events:none}
+  #toast.show{opacity:1}
+
+  #fatal{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+    background:var(--ink);text-align:center;padding:30px;line-height:1.8;font-size:14px}
+  #fatal code{color:var(--brass)}
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+
+<div id="menu">
+  <div class="eyebrow">A walk through art history</div>
+  <h1>The Long Gallery</h1>
+  <div class="range serif" id="menuRange">twelve rooms · five centuries</div>
+  <div class="rule"></div>
+  <div class="controls">
+    <b>W A S D</b> walk &nbsp;·&nbsp; <b>mouse</b> look &nbsp;·&nbsp; <b>shift</b> stride<br>
+    <b>Q</b> quiz mode &nbsp;·&nbsp; <b>M</b> ambience &nbsp;·&nbsp; <b>esc</b> pause &amp; use timeline
+  </div>
+  <div class="enter">Click to enter</div>
+  <div id="loadline">fetching the collection…</div>
+</div>
+
+<div class="hud" id="roomTag"><div class="era serif" id="eraName"></div><div class="years" id="eraYears"></div></div>
+<div class="hud" id="quizHud">Quiz&nbsp;&nbsp;<span id="quizScore">0 / 0</span></div>
+<div class="hud" id="hints"><b>Q</b> quiz · <b>M</b> sound · <b>ESC</b> timeline</div>
+<div class="hud" id="crosshair"></div>
+<div class="hud" id="minimapWrap"><canvas id="minimap" width="120" height="240"></canvas></div>
+
+<div id="plaque">
+  <div class="artist" id="pArtist"></div>
+  <div class="title serif" id="pTitle"></div>
+  <div class="meta" id="pMeta"></div>
+  <div class="body" id="pBody"></div>
+  <div class="credit" id="pCredit"></div>
+</div>
+
+<div id="quiz">
+  <div class="q serif" id="qText"></div>
+  <div id="qOpts"></div>
+  <div class="after">answer with keys 1–4</div>
+</div>
+
+<div id="timeline"><div id="tlRail"></div></div>
+<div id="toast"></div>
+<div id="fatal"></div>
+
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+
+/* ================= CONFIG ================= */
+const SUPABASE_URL = 'https://ojoproexbmqcadmzdioq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qb3Byb2V4Ym1xY2FkbXpkaW9xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAyNzUxNTUsImV4cCI6MjA5NTg1MTE1NX0.7xR6vG0zEw3oPBf_KeXs56PoNHK8P_dUS3RVmpo18D4';
+/* =========================================== */
+
+/* ---------- era style book (unknown movements fall back to default) ---------- */
+const ERA = {
+  'Renaissance':          { wall:0x6e5f49, floor:0x453a2c, light:0xffd9a0, lum:1.05, frame:0xc9a227, fw:0.11 },
+  'Northern Renaissance': { wall:0x4e5a4e, floor:0x3a352b, light:0xffe2b8, lum:0.95, frame:0x8a6b1f, fw:0.10 },
+  'Baroque':              { wall:0x481f1d, floor:0x241512, light:0xff9d4d, lum:0.80, frame:0xb8860b, fw:0.13 },
+  'Rococo':               { wall:0xa8c4d4, floor:0xcfc4ae, light:0xfff0cf, lum:1.30, frame:0xd4af37, fw:0.12 },
+  'Neoclassicism':        { wall:0x8f8f8f, floor:0xa6a29a, light:0xffffff, lum:1.15, frame:0x555046, fw:0.08 },
+  'Romanticism':          { wall:0x2f3a4a, floor:0x232a35, light:0xcfd8ff, lum:0.85, frame:0x7a5c22, fw:0.11 },
+  'Realism':              { wall:0x5c5548, floor:0x3f3a30, light:0xf5edd8, lum:1.00, frame:0x4d4638, fw:0.08 },
+  'Impressionism':        { wall:0xdcd6c6, floor:0xb9b2a0, light:0xffffff, lum:1.40, frame:0xcfc19a, fw:0.07 },
+  'Post-Impressionism':   { wall:0x2e4a43, floor:0x27332f, light:0xffe9c4, lum:1.05, frame:0x3d3a33, fw:0.06 },
+  'Symbolism':            { wall:0x241b2e, floor:0x1a1522, light:0xd9b96a, lum:0.75, frame:0xa8863a, fw:0.07 },
+  'Early Modernism':      { wall:0xf2f2f0, floor:0xd9d9d6, light:0xffffff, lum:1.55, frame:0x1b1b1b, fw:0.04 },
+  '_default':             { wall:0x6b6459, floor:0x47423a, light:0xfff2dc, lum:1.05, frame:0x6d5a2e, fw:0.09 },
+};
+const eraOf = m => ERA[m] || ERA._default;
+
+/* ---------- constants ---------- */
+const ROOM_W = 11, HALF = ROOM_W/2, CEIL = 4.2, WALL_T = 0.26;
+const DOOR_HW = 1.25, DOOR_H = 2.75, SLOT = 3.8, EYE = 1.62, PLAYER_R = 0.42;
+
+/* ---------- dom ---------- */
+const $ = id => document.getElementById(id);
+const menu=$('menu'), loadline=$('loadline'), plaque=$('plaque'), toast=$('toast');
+const quizBox=$('quiz'), quizHud=$('quizHud');
+
+function showToast(msg){ toast.textContent=msg; toast.classList.add('show');
+  clearTimeout(showToast._t); showToast._t=setTimeout(()=>toast.classList.remove('show'),2200); }
+function fatal(html){ $('fatal').innerHTML=html; $('fatal').style.display='flex'; menu.style.display='none'; }
+
+/* ---------- fetch collection ---------- */
+if (SUPABASE_ANON_KEY.includes('PASTE')) {
+  fatal(`The gallery is built, but no key is wired in.<br>
+   Set <code>SUPABASE_ANON_KEY</code> at the top of this file to your project's <code>anon</code> key.`);
+  throw new Error('missing anon key');
+}
+let works=[];
+try{
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/artworks?select=*&order=sort_order.asc`,
+    { headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}` }});
+  if(!res.ok) throw new Error(`Supabase responded ${res.status}`);
+  works = await res.json();
+}catch(e){ fatal(`Could not reach the collection.<br><code>${e.message}</code><br>Check the Supabase URL, anon key, and that the artworks table has a public read policy.`); throw e; }
+if(!works.length){ fatal('The <code>artworks</code> table is empty — run the loader script first.'); throw new Error('empty'); }
+
+const yearNum = s => { const m = String(s||'').match(/\d{4}/); return m ? +m[0] : 1700; };
+
+/* group by movement, preserving first-appearance order */
+const movements=[]; const byMove=new Map();
+for(const w of works){ if(!byMove.has(w.movement)){ byMove.set(w.movement,[]); movements.push(w.movement);} byMove.get(w.movement).push(w); }
+$('menuRange').textContent = `${movements.length} rooms · ${works.length} works · ${yearNum(works[0].year)}–${yearNum(works[works.length-1].year)}`;
+
+/* ---------- three setup ---------- */
+const renderer=new THREE.WebGLRenderer({canvas:$('scene'),antialias:true});
+renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+const scene=new THREE.Scene(); scene.background=new THREE.Color(0x0a0908);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,0.1,300);
+scene.add(new THREE.AmbientLight(0xffffff,0.42));
+scene.add(new THREE.HemisphereLight(0xfff4e0,0x2a241c,0.25));
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+
+/* ---------- procedural museum ---------- */
+await document.fonts.ready.catch(()=>{});
+const rooms=[], doors=[], paintings=[];
+let zCursor=0;
+const wallMat = c => new THREE.MeshLambertMaterial({color:c});
+
+function signTexture(name, years){
+  const c=document.createElement('canvas'); c.width=1024; c.height=256;
+  const g=c.getContext('2d');
+  g.fillStyle='#2b241a'; g.fillRect(0,0,1024,256);
+  g.strokeStyle='rgba(176,141,62,.9)'; g.lineWidth=3; g.strokeRect(14,14,996,228);
+  g.fillStyle='#ece5d6'; g.textAlign='center';
+  g.font='500 92px "Cormorant Garamond", Georgia, serif';
+  g.fillText(name.toUpperCase(),512,140);
+  g.fillStyle='#b08d3e'; g.font='600 34px Archivo, sans-serif';
+  g.fillText(years,512,205);
+  const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t;
+}
+
+movements.forEach((mv,i)=>{
+  const list=byMove.get(mv), st=eraOf(mv);
+  const perSide=Math.ceil(list.length/2);
+  const depth=Math.max(8.5, perSide*SLOT+4.5);
+  const z0=zCursor, z1=zCursor+depth; zCursor=z1;
+  const years = `${yearNum(list[0].year)} — ${yearNum(list[list.length-1].year)}`;
+  rooms.push({mv,z0,z1,st,years,list});
+
+  /* floor & ceiling */
+  const floor=new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W,depth), new THREE.MeshLambertMaterial({color:st.floor}));
+  floor.rotation.x=-Math.PI/2; floor.position.set(0,0,z0+depth/2); scene.add(floor);
+  const ceil=new THREE.Mesh(new THREE.PlaneGeometry(ROOM_W,depth), new THREE.MeshLambertMaterial({color:0x201c16}));
+  ceil.rotation.x=Math.PI/2; ceil.position.set(0,CEIL,z0+depth/2); scene.add(ceil);
+
+  /* side walls */
+  for(const sx of [-1,1]){
+    const w=new THREE.Mesh(new THREE.BoxGeometry(WALL_T,CEIL,depth), wallMat(st.wall));
+    w.position.set(sx*HALF,CEIL/2,z0+depth/2); scene.add(w);
+  }
+  /* south wall: solid for room 0 (the wall behind you at the start) */
+  if(i===0){
+    const w=new THREE.Mesh(new THREE.BoxGeometry(ROOM_W,CEIL,WALL_T), wallMat(st.wall));
+    w.position.set(0,CEIL/2,z0); scene.add(w);
+  }
+  /* north wall: doorway to next room, or solid end wall */
+  const isLast = i===movements.length-1;
+  if(isLast){
+    const w=new THREE.Mesh(new THREE.BoxGeometry(ROOM_W,CEIL,WALL_T), wallMat(st.wall));
+    w.position.set(0,CEIL/2,z1); scene.add(w);
+  } else {
+    const next=eraOf(movements[i+1]);
+    const segW=HALF-DOOR_HW;
+    for(const sx of [-1,1]){
+      const w=new THREE.Mesh(new THREE.BoxGeometry(segW,CEIL,WALL_T), wallMat(st.wall));
+      w.position.set(sx*(DOOR_HW+segW/2),CEIL/2,z1); scene.add(w);
+    }
+    const lintel=new THREE.Mesh(new THREE.BoxGeometry(DOOR_HW*2,CEIL-DOOR_H,WALL_T), wallMat(st.wall));
+    lintel.position.set(0,DOOR_H+(CEIL-DOOR_H)/2,z1); scene.add(lintel);
+    /* engraved sign facing the approaching visitor */
+    const nYears=`${yearNum(byMove.get(movements[i+1])[0].year)}`;
+    const sign=new THREE.Mesh(new THREE.PlaneGeometry(2.3,0.58),
+      new THREE.MeshBasicMaterial({map:signTexture(movements[i+1], nYears), transparent:false}));
+    sign.position.set(0, DOOR_H+0.62, z1-WALL_T/2-0.012); sign.rotation.y=Math.PI;
+    scene.add(sign);
+    doors.push({z:z1});
+  }
+
+  /* room light */
+  const pl=new THREE.PointLight(st.light, 22*st.lum, depth+14, 1.6);
+  pl.position.set(0,CEIL-0.5,z0+depth/2); scene.add(pl);
+
+  /* hang the paintings — alternating walls, chronological zigzag */
+  list.forEach((w,k)=>{
+    const side = k%2===0 ? -1 : 1;               // left first
+    const slot = Math.floor(k/2);
+    const z = z0 + 2.6 + slot*SLOT + (depth - (perSide-1)*SLOT - 5.2)/2;
+    const ratio=(w.width&&w.height)? w.width/w.height : 1.3;
+    let h=1.55, wd=ratio*h; if(wd>2.9){wd=2.9;h=wd/ratio;} if(wd<0.85){wd=0.85;h=wd/ratio;}
+    const fw=st.fw;
+    const x = side*(HALF-WALL_T/2);
+
+    const frame=new THREE.Mesh(new THREE.BoxGeometry(wd+fw*2,h+fw*2,0.09),
+      new THREE.MeshLambertMaterial({color:st.frame}));
+    frame.position.set(x - side*0.05, 1.62, z); frame.rotation.y=-side*Math.PI/2; scene.add(frame);
+
+    const canvasPh=document.createElement('canvas'); canvasPh.width=8;canvasPh.height=8;
+    const pg=canvasPh.getContext('2d'); pg.fillStyle='#3a352c'; pg.fillRect(0,0,8,8);
+    const phTex=new THREE.CanvasTexture(canvasPh);
+    const mat=new THREE.MeshBasicMaterial({map:phTex});
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(wd,h),mat);
+    mesh.position.set(x - side*0.10, 1.62, z); mesh.rotation.y=-side*Math.PI/2; scene.add(mesh);
+
+    const normal=new THREE.Vector3(-side,0,0);
+    paintings.push({w, mesh, mat, pos:mesh.position.clone(), normal, room:i});
+  });
+});
+const WORLD_LEN=zCursor;
+
+/* lazy texture loading with progress */
+const loader=new THREE.TextureLoader();
+let loaded=0;
+for(const p of paintings){
+  loader.load(p.w.image_url, t=>{
+    t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=renderer.capabilities.getMaxAnisotropy();
+    p.mat.map=t; p.mat.needsUpdate=true;
+    loaded++; loadline.textContent = loaded<paintings.length ? `hanging paintings… ${loaded} / ${paintings.length}` : 'the gallery is open';
+  }, undefined, ()=>{ loaded++; });
+}
+loadline.textContent=`hanging paintings… 0 / ${paintings.length}`;
+
+/* ---------- player, controls, collision ---------- */
+const player={pos:new THREE.Vector3(0,EYE,2.2), yaw:Math.PI, pitch:0, vel:new THREE.Vector3()};
+const keys={};
+addEventListener('keydown',e=>{keys[e.code]=true; onKey(e);});
+addEventListener('keyup',e=>{keys[e.code]=false;});
+
+const canvasEl=renderer.domElement;
+menu.addEventListener('click',()=>canvasEl.requestPointerLock());
+document.addEventListener('pointerlockchange',()=>{
+  const locked=document.pointerLockElement===canvasEl;
+  menu.classList.toggle('hidden',locked);
+  if(locked) startAudioOnce();
+});
+addEventListener('mousemove',e=>{
+  if(document.pointerLockElement!==canvasEl) return;
+  player.yaw -= e.movementX*0.0022;
+  player.pitch = Math.max(-1.35, Math.min(1.35, player.pitch - e.movementY*0.0022));
+});
+
+function canStand(x,z){
+  for(const r of rooms)
+    if(Math.abs(x)<HALF-PLAYER_R && z>r.z0+PLAYER_R && z<r.z1-PLAYER_R) return true;
+  for(const d of doors)
+    if(Math.abs(x)<DOOR_HW-PLAYER_R+0.12 && Math.abs(z-d.z)<0.8) return true;
+  return false;
+}
+
+/* ---------- plaque & quiz ---------- */
+let quizMode=false, quizScore=0, quizTotal=0, currentQuiz=null;
+const answered=new Set();
+const allArtists=[...new Set(works.map(w=>w.artist).filter(Boolean))];
+const allMoves=[...new Set(works.map(w=>w.movement).filter(Boolean))];
+
+function nearestFacing(){
+  let best=null,bd=3.4;
+  for(const p of paintings){
+    const d=player.pos.distanceTo(p.pos);
+    if(d>bd) continue;
+    const to=p.pos.clone().sub(player.pos).normalize();
+    const fwd=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));
+    if(fwd.dot(to)>0.45){ best=p; bd=d; }
+  }
+  return best;
+}
+function strip(s){return (s||'').replace(/\s+/g,' ').trim();}
+
+function showPlaque(p){
+  $('pArtist').textContent=p.w.artist||'Unknown';
+  $('pTitle').textContent=p.w.title;
+  $('pMeta').textContent=`${p.w.year||''} · ${p.w.movement||''}`;
+  $('pBody').textContent=p.w.plaque||'';
+  $('pCredit').textContent=strip(`${p.w.license||''} · Wikimedia Commons`);
+  plaque.classList.add('show');
+}
+
+function makeQuiz(p){
+  const askArtist = Math.random()<0.6 && allArtists.length>=4;
+  const pool = askArtist? allArtists : allMoves;
+  const right = askArtist? p.w.artist : p.w.movement;
+  const opts=[right];
+  const shuffled=[...pool].filter(v=>v!==right).sort(()=>Math.random()-0.5);
+  while(opts.length<Math.min(4,pool.length)) opts.push(shuffled.pop());
+  opts.sort(()=>Math.random()-0.5);
+  currentQuiz={p,right,opts,done:false};
+  $('qText').textContent = askArtist? 'Who painted this?' : 'Which movement is this?';
+  const box=$('qOpts'); box.innerHTML='';
+  opts.forEach((o,i)=>{
+    const b=document.createElement('button'); b.className='opt';
+    b.innerHTML=`<b>${i+1}</b>${o}`;
+    b.onclick=()=>answerQuiz(i);
+    box.appendChild(b);
+  });
+  quizBox.style.display='block';
+}
+function answerQuiz(i){
+  if(!currentQuiz||currentQuiz.done) return;
+  currentQuiz.done=true;
+  const {p,right,opts}=currentQuiz;
+  const btns=[...$('qOpts').children];
+  btns.forEach((b,j)=>{ if(opts[j]===right) b.classList.add('right'); else if(j===i) b.classList.add('wrong'); });
+  quizTotal++; if(opts[i]===right) quizScore++;
+  $('quizScore').textContent=`${quizScore} / ${quizTotal}`;
+  answered.add(p.w.id);
+  setTimeout(()=>{ quizBox.style.display='none'; currentQuiz=null; }, 1400);
+}
+
+function onKey(e){
+  if(e.code==='KeyQ'){
+    quizMode=!quizMode;
+    quizHud.style.display=quizMode?'block':'none';
+    if(quizMode){ quizScore=0;quizTotal=0;answered.clear(); $('quizScore').textContent='0 / 0';
+      showToast('QUIZ MODE — plaques hidden. Walk to a painting.'); plaque.classList.remove('show'); }
+    else { quizBox.style.display='none'; currentQuiz=null; showToast('Quiz off'); }
+  }
+  if(e.code==='KeyM') toggleAudio();
+  if(currentQuiz && ['Digit1','Digit2','Digit3','Digit4'].includes(e.code))
+    answerQuiz(+e.code.slice(5)-1);
+}
+
+/* ---------- ambient audio (generative, no samples) ---------- */
+let actx=null, master=null, audioOn=false;
+function startAudioOnce(){ if(actx) return; buildAudio(); }
+function buildAudio(){
+  actx=new (window.AudioContext||window.webkitAudioContext)();
+  master=actx.createGain(); master.gain.value=0; master.connect(actx.destination);
+  const filt=actx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=420; filt.connect(master);
+  [[55,'sine'],[110,'sine'],[164.81,'triangle']].forEach(([f,ty],i)=>{
+    const o=actx.createOscillator(); o.type=ty; o.frequency.value=f;
+    const g=actx.createGain(); g.gain.value=i===2?0.012:0.028;
+    o.connect(g); g.connect(filt); o.start();
+  });
+  const lfo=actx.createOscillator(); lfo.frequency.value=0.05;
+  const lg=actx.createGain(); lg.gain.value=160; lfo.connect(lg); lg.connect(filt.frequency); lfo.start();
+  audioOn=true; master.gain.linearRampToValueAtTime(0.5, actx.currentTime+3);
+}
+function toggleAudio(){
+  if(!actx){ buildAudio(); showToast('Ambience on'); return; }
+  audioOn=!audioOn;
+  master.gain.linearRampToValueAtTime(audioOn?0.5:0, actx.currentTime+1);
+  showToast(audioOn?'Ambience on':'Ambience off');
+}
+
+/* ---------- timeline strip ---------- */
+const tl=$('timeline');
+const years=works.map(w=>yearNum(w.year));
+const yMin=Math.min(...years), yMax=Math.max(...years);
+const yPos=y=>( (y-yMin)/(yMax-yMin) )*100;
+for(let c=Math.ceil(yMin/100)*100; c<=yMax; c+=100){
+  const t=document.createElement('div'); t.className='tlTick'; t.style.left=`calc(${yPos(c)}% )`;
+  const l=document.createElement('div'); l.className='tlTickLabel'; l.style.left=`${yPos(c)}%`; l.textContent=c;
+  tl.appendChild(t); tl.appendChild(l);
+}
+const dots=paintings.map(p=>{
+  const d=document.createElement('div'); d.className='tlDot';
+  d.style.left=`${yPos(yearNum(p.w.year))}%`;
+  d.title=`${p.w.title} — ${p.w.artist} (${p.w.year})`;
+  d.onclick=()=>{ teleportTo(p); canvasEl.requestPointerLock(); };
+  tl.appendChild(d); return d;
+});
+function teleportTo(p){
+  const dest=p.pos.clone().add(p.normal.clone().multiplyScalar(2.7)); dest.y=EYE;
+  player.pos.copy(dest);
+  const f=p.pos.clone().sub(player.pos).normalize();
+  player.yaw=Math.atan2(-f.x,-f.z); player.pitch=0; player.vel.set(0,0,0);
+  showToast(`${p.w.title} · ${p.w.year}`);
+}
+
+/* ---------- minimap ---------- */
+const mm=$('minimap').getContext('2d');
+function drawMinimap(){
+  const W=120,H=240; mm.clearRect(0,0,W,H);
+  const sc=(H-16)/WORLD_LEN, ox=W/2, oy=H-8;
+  for(const r of rooms){
+    mm.fillStyle='#'+r.st.wall.toString(16).padStart(6,'0');
+    mm.globalAlpha=0.85;
+    mm.fillRect(ox-HALF*sc*0.9, oy-r.z1*sc, HALF*2*sc*0.9, (r.z1-r.z0)*sc-1);
+  }
+  mm.globalAlpha=1;
+  /* player */
+  const px=ox+player.pos.x*sc*0.9, pz=oy-player.pos.z*sc;
+  mm.fillStyle='#ece5d6';
+  mm.beginPath(); mm.arc(px,pz,3,0,7); mm.fill();
+  mm.strokeStyle='#b08d3e'; mm.beginPath(); mm.moveTo(px,pz);
+  mm.lineTo(px - Math.sin(player.yaw)*9, pz + Math.cos(player.yaw)*9); mm.stroke();
+}
+
+/* ---------- main loop ---------- */
+let lastRoom=-1, prev=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,(now-prev)/1000); prev=now;
+  const locked=document.pointerLockElement===canvasEl;
+
+  if(locked){
+    const speed=(keys['ShiftLeft']||keys['ShiftRight'])?5.4:3.0;
+    const f=new THREE.Vector3(-Math.sin(player.yaw),0,-Math.cos(player.yaw));
+    const r=new THREE.Vector3(-f.z,0,f.x);
+    const wish=new THREE.Vector3();
+    if(keys['KeyW'])wish.add(f); if(keys['KeyS'])wish.sub(f);
+    if(keys['KeyD'])wish.add(r); if(keys['KeyA'])wish.sub(r);
+    if(wish.lengthSq()>0) wish.normalize().multiplyScalar(speed);
+    player.vel.lerp(wish,1-Math.pow(0.0001,dt));
+    const nx=player.pos.x+player.vel.x*dt, nz=player.pos.z+player.vel.z*dt;
+    if(canStand(nx,player.pos.z)) player.pos.x=nx; else player.vel.x=0;
+    if(canStand(player.pos.x,nz)) player.pos.z=nz; else player.vel.z=0;
+  }
+
+  camera.position.copy(player.pos);
+  camera.rotation.set(0,0,0);
+  camera.rotateY(player.yaw); camera.rotateX(player.pitch);
+
+  /* room HUD */
+  const ri=rooms.findIndex(r=>player.pos.z>=r.z0&&player.pos.z<r.z1);
+  if(ri>=0&&ri!==lastRoom){ lastRoom=ri;
+    $('eraName').textContent=rooms[ri].mv; $('eraYears').textContent=rooms[ri].years; }
+
+  /* plaque / quiz proximity */
+  const near=locked? nearestFacing() : null;
+  if(near && !quizMode){ showPlaque(near); }
+  else if(!currentQuiz) plaque.classList.remove('show');
+  if(near && quizMode && !currentQuiz && !answered.has(near.w.id)) makeQuiz(near);
+  if(!near && currentQuiz && !currentQuiz.done){ quizBox.style.display='none'; currentQuiz=null; }
+
+  /* timeline current dot */
+  dots.forEach((d,i)=>d.classList.toggle('here', near===paintings[i]));
+
+  drawMinimap();
+  renderer.render(scene,camera);
+}
+loop(prev);
+</script>
+</body>
+</html>
