@@ -663,14 +663,15 @@ async function initAtlas(){
     box([[128,30],[147,30],[147,46],[128,46],[128,30]]));
 
   const defs=svg.append('defs');
+  const root=svg.append('g');   /* everything zoomable lives here */
   for(const [id,P] of [['clipAM',AM],['clipJP',JP]])
     defs.append('clipPath').attr('id',id).append('rect')
       .attr('x',P.x).attr('y',P.y).attr('width',P.w).attr('height',P.h);
 
   const landStyle=s=>s.attr('fill','#191512').attr('stroke','rgba(236,229,214,.22)').attr('stroke-width',.7);
-  landStyle(svg.append('path').datum(land).attr('d',d3.geoPath(euro)));
+  landStyle(root.append('path').datum(land).attr('d',d3.geoPath(euro)));
   for(const [P,proj,label,clip] of [[AM,amer,'AMERICA','clipAM'],[JP,japa,'JAPAN','clipJP']]){
-    const g=svg.append('g');
+    const g=root.append('g');
     g.append('rect').attr('x',P.x).attr('y',P.y).attr('width',P.w).attr('height',P.h)
       .attr('fill','#0c0a08').attr('stroke','rgba(236,229,214,.28)');
     landStyle(g.append('path').datum(land).attr('d',d3.geoPath(proj)).attr('clip-path',`url(#${clip})`));
@@ -693,11 +694,12 @@ async function initAtlas(){
         a.x=x+Math.cos(t)*r; a.y=y+Math.sin(t)*r; }
     });
   }
-  const seenCity={}, cityG=svg.append('g');
+  const seenCity={}, cityG=root.append('g');
   for(const a of people){ if(seenCity[a.city])continue; seenCity[a.city]=1;
     const [x,y]=locate(a);
-    cityG.append('text').attr('x',x).attr('y',y-16).text((a.city||'').toUpperCase())
-      .attr('text-anchor','middle').attr('fill','rgba(236,229,214,.3)')
+    cityG.append('text').datum([x,y-16]).attr('transform',`translate(${x},${y-16})`)
+      .text((a.city||'').toUpperCase())
+      .attr('text-anchor','middle').attr('fill','#ece5d6').attr('opacity',.3)
       .attr('font-size',8).attr('letter-spacing','.22em').attr('font-family','Archivo'); }
 
   const byName={}; people.forEach(a=>byName[a.name]=a);
