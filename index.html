@@ -220,6 +220,7 @@
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <button class="aBtn on" id="modeRel">Relationships</button>
       <button class="aBtn" id="modeCon">Contemporaries</button>
+      <button class="aBtn" id="aReset">⤢ Reset</button>
       <button class="aBtn" id="aPlay">▶ Play</button>
       <button class="aBtn" id="atlasClose">✕ Program</button>
     </div>
@@ -706,12 +707,31 @@ async function initAtlas(){
   const movOf={}; for(const w of works) if(!(w.artist in movOf)) movOf[w.artist]=w.movement;
   const edges=rels.filter(r=>byName[r.a]&&byName[r.b]);
 
-  const linkG=svg.append('g').attr('fill','none');
-  const node=svg.append('g').selectAll('g').data(people).join('g')
+  const linkG=root.append('g').attr('fill','none');
+  const node=root.append('g').selectAll('g').data(people).join('g')
     .attr('transform',a=>`translate(${a.x},${a.y})`).style('cursor','pointer');
   node.append('circle').attr('r',5)
     .attr('fill',a=>hexCss(eraOf(movOf[a.name]).wall))
     .attr('stroke','rgba(236,229,214,.85)').attr('stroke-width',.8);
+
+  /* ---- zoom & pan ---- */
+  let K=1;
+  const zoom=d3.zoom().scaleExtent([1,14])
+    .translateExtent([[0,0],[W,Hh]]).extent([[0,0],[W,Hh]])
+    .on('zoom',ev=>{
+      K=ev.transform.k;
+      root.attr('transform',ev.transform);
+      /* keep strokes and dots visually constant as the map scales */
+      const inv=1/K;
+      linkG.attr('stroke-width',null);
+      linkG.selectAll('path').attr('vector-effect','non-scaling-stroke');
+      node.selectAll('circle').attr('r',5*inv).attr('stroke-width',.8*inv);
+      cityG.selectAll('text')
+        .attr('transform',d=>`translate(${d[0]},${d[1]}) scale(${inv})`)
+        .attr('opacity',Math.min(.85,.3+(K-1)*.14));
+    });
+  svg.call(zoom).on('dblclick.zoom',null);
+  $('aReset').onclick=()=>svg.transition().duration(500).call(zoom.transform,d3.zoomIdentity);
 
   const card=$('aCard');
   node.on('mouseenter',(ev,a)=>{
@@ -783,6 +803,7 @@ async function initAtlas(){
     }
     if(A.focus) data=data.filter(e=>e.a===A.focus||e.b===A.focus);
     linkG.selectAll('path').data(data,e=>e.a+'|'+e.b+'|'+e.type).join('path')
+      .attr('vector-effect','non-scaling-stroke')
       .attr('d',e=>arc(byName[e.a],byName[e.b]))
       .each(function(e){
         const ghost=e.type!=='_con'&&!active(byName[e.a])&&A.year>byName[e.a].death;
@@ -803,7 +824,8 @@ async function initAtlas(){
       const s=byName[e.a];
       if(active(byName[e.b])&&!active(s)&&A.year>s.death) referenced.add(s.name); }
     node.attr('opacity',a=>active(a)?1:(referenced.has(a.name)?.35:.05));
-    node.select('circle').attr('fill',a=>active(a)?hexCss(eraOf(movOf[a.name]).wall):'none');
+    node.select('circle').attr('r',5/K).attr('stroke-width',.8/K)
+      .attr('fill',a=>active(a)?hexCss(eraOf(movOf[a.name]).wall):'none');
     drawLinks();
   }
 
