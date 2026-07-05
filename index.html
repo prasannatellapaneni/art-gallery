@@ -126,6 +126,41 @@
   .tlDot:hover{transform:translateX(-50%) scale(1.7);background:var(--brass)}
   .tlDot.here{background:var(--bone);border-color:var(--bone)}
 
+  /* ---------- the atlas ---------- */
+  #atlas{position:fixed;inset:0;z-index:45;display:none;flex-direction:column;
+    background:radial-gradient(ellipse at 50% 30%, rgba(24,20,15,.97), rgba(8,6,5,.995))}
+  #atlas .aTop{display:flex;justify-content:space-between;align-items:flex-end;
+    padding:20px 28px 10px;gap:14px;flex-wrap:wrap}
+  #atlas .aTitle{font-family:'Cormorant Garamond',serif;font-size:32px;line-height:1}
+  #atlas .aSub{font-size:11px;letter-spacing:.3em;color:var(--brass);text-transform:uppercase;margin-bottom:4px}
+  .aBtn{background:none;border:1px solid var(--hairline);color:var(--bone);
+    font-family:'Archivo',sans-serif;font-size:10.5px;letter-spacing:.18em;text-transform:uppercase;
+    padding:8px 14px;cursor:pointer}
+  .aBtn:hover{border-color:var(--brass)}
+  .aBtn.on{background:var(--brass);color:var(--ink);border-color:var(--brass)}
+  #aMapWrap{position:relative;flex:1;min-height:0}
+  #aMap{position:absolute;inset:0;width:100%;height:100%}
+  .aMsg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    font-size:13px;letter-spacing:.08em;opacity:.85;text-align:center;padding:30px}
+  #aCard{position:absolute;width:270px;background:var(--glass);backdrop-filter:blur(8px);
+    border:1px solid var(--hairline);border-top:2px solid var(--brass);padding:14px 16px;
+    pointer-events:none;opacity:0;transition:opacity .15s;z-index:5}
+  #aCard .n{font-family:'Cormorant Garamond',serif;font-size:20px}
+  #aCard .d{font-size:10px;letter-spacing:.2em;color:var(--brass);margin:2px 0 6px}
+  #aCard .b{font-size:11.5px;line-height:1.55;opacity:.9}
+  #aCard .t{font-size:9.5px;letter-spacing:.2em;color:var(--brass);margin-top:8px;text-transform:uppercase}
+  #atlas .aFoot{display:flex;align-items:center;gap:18px;padding:10px 28px 6px}
+  #aYear{font-family:'Cormorant Garamond',serif;font-size:44px;min-width:120px;text-align:center;
+    font-variant-numeric:tabular-nums}
+  #aScrub{position:relative;flex:1;height:48px;cursor:crosshair}
+  #aBands{position:absolute;inset:6px 0}
+  .aBand{position:absolute;height:3px;opacity:.85}
+  #aHead{position:absolute;top:0;bottom:0;width:2px;background:var(--bone);pointer-events:none}
+  #aHead::after{content:'';position:absolute;top:-4px;left:-4px;width:10px;height:10px;
+    border-radius:50%;background:var(--brass)}
+  #aLegendNote{font-size:9.5px;letter-spacing:.14em;opacity:.55;text-transform:uppercase;
+    padding:0 28px 14px;text-align:right}
+
   #toast{position:fixed;top:70px;left:50%;transform:translateX(-50%);z-index:35;
     background:var(--glass);border:1px solid var(--hairline);padding:8px 18px;font-size:12px;
     letter-spacing:.15em;opacity:0;transition:opacity .3s;pointer-events:none}
@@ -145,7 +180,10 @@
   <div class="range serif" id="menuRange">the collection is loading</div>
   <div class="rule"></div>
   <div id="grid"></div>
-  <div class="enter" id="enterBtn">Enter the Gallery</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center">
+    <div class="enter" id="enterBtn">Enter the Gallery</div>
+    <div class="enter" id="atlasBtn" style="background:none">View the Atlas</div>
+  </div>
   <div class="controls">
     <b>W A S D</b> walk &nbsp;·&nbsp; <b>mouse</b> look &nbsp;·&nbsp; <b>shift</b> stride &nbsp;·&nbsp;
     <b>Q</b> quiz &nbsp;·&nbsp; <b>M</b> ambience &nbsp;·&nbsp; <b>esc</b> this program
@@ -171,6 +209,30 @@
   <div class="q serif" id="qText"></div>
   <div id="qOpts"></div>
   <div class="after">answer with keys 1–4</div>
+</div>
+
+<div id="atlas">
+  <div class="aTop">
+    <div>
+      <div class="aSub">Atlas of the collection</div>
+      <div class="aTitle">Where They Stood</div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="aBtn on" id="modeRel">Relationships</button>
+      <button class="aBtn" id="modeCon">Contemporaries</button>
+      <button class="aBtn" id="aPlay">▶ Play</button>
+      <button class="aBtn" id="atlasClose">✕ Program</button>
+    </div>
+  </div>
+  <div id="aMapWrap">
+    <svg id="aMap"></svg>
+    <div id="aCard"></div>
+  </div>
+  <div class="aFoot">
+    <div id="aYear">1500</div>
+    <div id="aScrub"><div id="aBands"></div><div id="aHead"></div></div>
+  </div>
+  <div id="aLegendNote">solid — taught · dashed — influenced · dotted — a ghost still felt · oxblood — rivals · hover an artist · click to visit their room</div>
 </div>
 
 <div id="timeline"><div id="tlRail"></div></div>
@@ -492,6 +554,7 @@ function onKey(e){
     else { quizBox.style.display='none'; currentQuiz=null; showToast('Quiz off'); }
   }
   if(e.code==='KeyM') toggleAudio();
+  if(e.code==='Escape' && atlasEl.style.display==='flex') closeAtlas();
   if(currentQuiz && ['Digit1','Digit2','Digit3','Digit4'].includes(e.code))
     answerQuiz(+e.code.slice(5)-1);
 }
@@ -561,6 +624,198 @@ function drawMinimap(){
   mm.beginPath(); mm.arc(px,pz,3,0,7); mm.fill();
   mm.strokeStyle='#b08d3e'; mm.beginPath(); mm.moveTo(px,pz);
   mm.lineTo(px - Math.sin(player.yaw)*9, pz + Math.cos(player.yaw)*9); mm.stroke();
+}
+
+/* ================= THE ATLAS ================= */
+const atlasEl=$('atlas');
+let A=null;
+$('atlasBtn').onclick=()=>{ atlasEl.style.display='flex';
+  if(!A) initAtlas().catch(e=>{ $('aMapWrap').insertAdjacentHTML('beforeend',
+    `<div class="aMsg">The Atlas could not load — ${e.message}</div>`); }); };
+$('atlasClose').onclick=closeAtlas;
+function closeAtlas(){ atlasEl.style.display='none';
+  if(A){ A.playing=false; $('aPlay').textContent='▶ Play'; } }
+
+async function initAtlas(){
+  const H={ headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}` }};
+  const [aRes,rRes]=await Promise.all([
+    fetch(`${SUPABASE_URL}/rest/v1/artists?select=*`,H),
+    fetch(`${SUPABASE_URL}/rest/v1/relationships?select=*`,H)]);
+  const people=(aRes.ok? await aRes.json():[]).filter(a=>a.lat!=null&&a.birth&&a.death);
+  const rels=rRes.ok? await rRes.json():[];
+  if(!people.length){ $('aMapWrap').insertAdjacentHTML('beforeend',
+    '<div class="aMsg">Run <b>artists.sql</b> in the Supabase SQL editor to open the Atlas.</div>'); return; }
+
+  const d3=await import('https://cdn.jsdelivr.net/npm/d3@7/+esm');
+  const topojson=await import('https://cdn.jsdelivr.net/npm/topojson-client@3/+esm');
+  const world=await (await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/countries-110m.json')).json();
+  const land=topojson.feature(world, world.objects.land);
+
+  const wrap=$('aMapWrap'), W=wrap.clientWidth, Hh=wrap.clientHeight;
+  const svg=d3.select('#aMap').attr('viewBox',`0 0 ${W} ${Hh}`);
+  const box=c=>({type:'Polygon',coordinates:[c]});
+  const euro=d3.geoMercator().fitExtent([[8,8],[W-8,Hh-8]],
+    box([[-13,34],[42,34],[42,63],[-13,63],[-13,34]]));
+  const AM={x:14,y:Hh-176,w:210,h:162}, JP={x:W-224,y:Hh-176,w:210,h:162};
+  const amer=d3.geoMercator().fitExtent([[AM.x+6,AM.y+6],[AM.x+AM.w-6,AM.y+AM.h-6]],
+    box([[-97,35],[-65,35],[-65,48],[-97,48],[-97,35]]));
+  const japa=d3.geoMercator().fitExtent([[JP.x+6,JP.y+6],[JP.x+JP.w-6,JP.y+JP.h-6]],
+    box([[128,30],[147,30],[147,46],[128,46],[128,30]]));
+
+  const defs=svg.append('defs');
+  for(const [id,P] of [['clipAM',AM],['clipJP',JP]])
+    defs.append('clipPath').attr('id',id).append('rect')
+      .attr('x',P.x).attr('y',P.y).attr('width',P.w).attr('height',P.h);
+
+  const landStyle=s=>s.attr('fill','#191512').attr('stroke','rgba(236,229,214,.22)').attr('stroke-width',.7);
+  landStyle(svg.append('path').datum(land).attr('d',d3.geoPath(euro)));
+  for(const [P,proj,label,clip] of [[AM,amer,'AMERICA','clipAM'],[JP,japa,'JAPAN','clipJP']]){
+    const g=svg.append('g');
+    g.append('rect').attr('x',P.x).attr('y',P.y).attr('width',P.w).attr('height',P.h)
+      .attr('fill','#0c0a08').attr('stroke','rgba(236,229,214,.28)');
+    landStyle(g.append('path').datum(land).attr('d',d3.geoPath(proj)).attr('clip-path',`url(#${clip})`));
+    g.append('text').attr('x',P.x+8).attr('y',P.y+16).text(label)
+      .attr('fill','#b08d3e').attr('font-size',9).attr('letter-spacing','.3em')
+      .attr('font-family','Archivo');
+  }
+
+  /* dot positions with constellation jitter for shared cities */
+  const locate=a=> a.lng>100? japa([a.lng,a.lat]) : a.lng<-30? amer([a.lng,a.lat]) : euro([a.lng,a.lat]);
+  const groups={};
+  for(const a of people)(groups[a.lat+','+a.lng]??=[]).push(a);
+  for(const g of Object.values(groups)){
+    g.sort((p,q)=>p.birth-q.birth);
+    g.forEach((a,i)=>{
+      const [x,y]=locate(a);
+      if(i===0){ a.x=x; a.y=y; }
+      else{ const ring=Math.floor((i-1)/8), k=(i-1)%8,
+        r=14+ring*8, t=k/8*Math.PI*2+ring*.4;
+        a.x=x+Math.cos(t)*r; a.y=y+Math.sin(t)*r; }
+    });
+  }
+  const seenCity={}, cityG=svg.append('g');
+  for(const a of people){ if(seenCity[a.city])continue; seenCity[a.city]=1;
+    const [x,y]=locate(a);
+    cityG.append('text').attr('x',x).attr('y',y-16).text((a.city||'').toUpperCase())
+      .attr('text-anchor','middle').attr('fill','rgba(236,229,214,.3)')
+      .attr('font-size',8).attr('letter-spacing','.22em').attr('font-family','Archivo'); }
+
+  const byName={}; people.forEach(a=>byName[a.name]=a);
+  const movOf={}; for(const w of works) if(!(w.artist in movOf)) movOf[w.artist]=w.movement;
+  const edges=rels.filter(r=>byName[r.a]&&byName[r.b]);
+
+  const linkG=svg.append('g').attr('fill','none');
+  const node=svg.append('g').selectAll('g').data(people).join('g')
+    .attr('transform',a=>`translate(${a.x},${a.y})`).style('cursor','pointer');
+  node.append('circle').attr('r',5)
+    .attr('fill',a=>hexCss(eraOf(movOf[a.name]).wall))
+    .attr('stroke','rgba(236,229,214,.85)').attr('stroke-width',.8);
+
+  const card=$('aCard');
+  node.on('mouseenter',(ev,a)=>{
+    card.innerHTML=`<div class="n">${a.name}</div>
+      <div class="d">${a.birth}–${a.death} · ${a.nationality||''} · ${a.city||''}</div>
+      <div class="b">${a.note||''}</div>
+      <div class="t">${works.filter(w=>w.artist===a.name).length} works in the gallery · click to visit</div>`;
+    card.style.left=Math.min(a.x+16,W-286)+'px';
+    card.style.top=Math.min(Math.max(a.y-40,10),Hh-160)+'px';
+    card.style.opacity=1; A.focus=a.name; drawLinks();
+  }).on('mouseleave',()=>{ card.style.opacity=0; A.focus=null; drawLinks(); })
+    .on('click',(ev,a)=>{
+      const p=paintings.find(p=>p.w.artist===a.name);
+      if(!p){ showToast('No works hung yet for '+a.name); return; }
+      closeAtlas(); teleportTo(p); canvasEl.requestPointerLock();
+    });
+
+  /* scrubber */
+  const Y0=Math.min(...people.map(a=>a.birth+20)), Y1=Math.max(...people.map(a=>a.death));
+  const bands=$('aBands');
+  rooms.forEach((r,i)=>{
+    const ys=r.list.map(w=>yearNum(w.year));
+    const b=document.createElement('div'); b.className='aBand'; b.title=r.mv;
+    b.style.left=((Math.min(...ys)-Y0)/(Y1-Y0)*100)+'%';
+    b.style.width=Math.max(.6,(Math.max(...ys)-Math.min(...ys))/(Y1-Y0)*100)+'%';
+    b.style.top=(i*3.6)+'px'; b.style.background=hexCss(r.st.wall);
+    bands.appendChild(b);
+  });
+  const scrub=$('aScrub');
+  const setYear=y=>{ A.year=Math.max(Y0,Math.min(Y1,y)); render(); };
+  const fromEvent=e=>{ const r=scrub.getBoundingClientRect();
+    setYear(Y0+(e.clientX-r.left)/r.width*(Y1-Y0)); };
+  let dragging=false;
+  scrub.addEventListener('pointerdown',e=>{ dragging=true; A.playing=false;
+    $('aPlay').textContent='▶ Play'; fromEvent(e); });
+  addEventListener('pointermove',e=>{ if(dragging&&atlasEl.style.display==='flex') fromEvent(e); });
+  addEventListener('pointerup',()=>dragging=false);
+
+  $('aPlay').onclick=()=>{ A.playing=!A.playing;
+    if(A.playing&&A.year>=Y1-1) A.year=Y0;
+    $('aPlay').textContent=A.playing?'❚❚ Pause':'▶ Play'; };
+  $('modeRel').onclick=()=>{ A.mode='rel'; modeBtns(); drawLinks(); };
+  $('modeCon').onclick=()=>{ A.mode='con'; modeBtns(); drawLinks(); };
+  function modeBtns(){ $('modeRel').classList.toggle('on',A.mode==='rel');
+    $('modeCon').classList.toggle('on',A.mode==='con'); }
+
+  const REL_STYLE={
+    'taught':          {s:'#b08d3e',w:1.5,d:null, o:.85},
+    'influenced':      {s:'#b08d3e',w:1.1,d:'6 4',o:.7},
+    'friends':         {s:'#ece5d6',w:.9, d:null, o:.5},
+    'worked together': {s:'#ece5d6',w:1.7,d:null, o:.65},
+    'family':          {s:'#ece5d6',w:.9, d:'1 3',o:.6},
+    'rivals':          {s:'#c05a4e',w:1.2,d:'8 3',o:.75},
+  };
+  const active=a=>A.year>=a.birth+20&&A.year<=a.death;
+  const arc=(p,q)=>{ const mx=(p.x+q.x)/2,my=(p.y+q.y)/2,
+    dx=q.x-p.x,dy=q.y-p.y,L=Math.hypot(dx,dy)||1;
+    return `M${p.x},${p.y} Q${mx-dy*.14},${my+dx*.14} ${q.x},${q.y}`; };
+
+  function drawLinks(){
+    let data=[];
+    if(A.mode==='rel'){
+      data=edges.filter(e=>{ const s=byName[e.a],t=byName[e.b];
+        return active(t)&&(active(s)||A.year>s.death); });
+    }else{
+      const act=people.filter(active);
+      for(let i=0;i<act.length;i++)for(let j=i+1;j<act.length;j++)
+        data.push({a:act[i].name,b:act[j].name,type:'_con'});
+    }
+    if(A.focus) data=data.filter(e=>e.a===A.focus||e.b===A.focus);
+    linkG.selectAll('path').data(data,e=>e.a+'|'+e.b+'|'+e.type).join('path')
+      .attr('d',e=>arc(byName[e.a],byName[e.b]))
+      .each(function(e){
+        const ghost=e.type!=='_con'&&!active(byName[e.a])&&A.year>byName[e.a].death;
+        const st=REL_STYLE[e.type]||{s:'#b08d3e',w:.6,d:null,o:.06};
+        d3.select(this)
+          .attr('stroke',e.type==='_con'?'#b08d3e':st.s)
+          .attr('stroke-width',e.type==='_con'?.6:st.w)
+          .attr('stroke-dasharray',ghost?'2 5':(e.type==='_con'?null:st.d))
+          .attr('opacity',e.type==='_con'?(A.focus?.5:.07):(ghost?st.o*.55:st.o));
+      });
+  }
+
+  function render(){
+    $('aYear').textContent=Math.round(A.year);
+    $('aHead').style.left=((A.year-Y0)/(Y1-Y0)*100)+'%';
+    const referenced=new Set();
+    if(A.mode==='rel') for(const e of edges){
+      const s=byName[e.a];
+      if(active(byName[e.b])&&!active(s)&&A.year>s.death) referenced.add(s.name); }
+    node.attr('opacity',a=>active(a)?1:(referenced.has(a.name)?.35:.05));
+    node.select('circle').attr('fill',a=>active(a)?hexCss(eraOf(movOf[a.name]).wall):'none');
+    drawLinks();
+  }
+
+  A={year:1500,playing:false,mode:'rel',focus:null};
+  modeBtns(); render();
+
+  let last=performance.now();
+  (function tick(now){ requestAnimationFrame(tick);
+    const dt=Math.min(.05,(now-last)/1000); last=now;
+    if(A.playing&&atlasEl.style.display==='flex'){
+      A.year+=dt*16;
+      if(A.year>=Y1){ A.year=Y1; A.playing=false; $('aPlay').textContent='▶ Play'; }
+      render();
+    } })(last);
 }
 
 /* ---------- main loop ---------- */
