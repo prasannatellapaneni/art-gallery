@@ -19,21 +19,55 @@
   .serif{font-family:'Cormorant Garamond',Georgia,serif}
 
   /* ---------- entry / menu overlay ---------- */
-  #menu{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 40%, rgba(30,25,18,.88), rgba(10,8,6,.97));
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
-    z-index:40;text-align:center;cursor:pointer;transition:opacity .5s}
+  #menu{position:fixed;inset:0;background:radial-gradient(ellipse at 50% 28%, rgba(30,25,18,.92), rgba(8,6,5,.985));
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:15px;
+    z-index:40;text-align:center;transition:opacity .5s;overflow-y:auto;padding:46px 20px 42px}
   #menu.hidden{opacity:0;pointer-events:none}
+  #menu::-webkit-scrollbar{width:8px}
+  #menu::-webkit-scrollbar-thumb{background:var(--brass-dim)}
   #menu .eyebrow{letter-spacing:.42em;font-size:11px;color:var(--brass);text-transform:uppercase}
-  #menu h1{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(40px,6vw,72px);
-    letter-spacing:.02em}
-  #menu .range{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:20px;opacity:.75}
-  #menu .rule{width:64px;height:1px;background:var(--brass);margin:6px 0}
-  #menu .controls{font-size:12.5px;letter-spacing:.08em;line-height:2.1;opacity:.8}
+  #menu h1{font-family:'Cormorant Garamond',serif;font-weight:500;font-size:clamp(34px,4.6vw,58px);
+    letter-spacing:.02em;line-height:1.05}
+  #menu .range{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:18px;opacity:.75}
+  #menu .rule{width:64px;height:1px;background:var(--brass);margin:2px 0 4px}
+  #menu .controls{font-size:12px;letter-spacing:.08em;line-height:2;opacity:.75}
   #menu .controls b{color:var(--brass);font-weight:600}
-  #menu .enter{margin-top:10px;border:1px solid var(--brass);padding:11px 34px;
-    letter-spacing:.3em;font-size:12px;text-transform:uppercase;color:var(--bone)}
+  #menu .enter{border:1px solid var(--brass);padding:12px 42px;cursor:pointer;
+    letter-spacing:.3em;font-size:12px;text-transform:uppercase;color:var(--bone);
+    background:rgba(176,141,62,.08);transition:background .2s,color .2s}
   #menu .enter:hover{background:var(--brass);color:var(--ink)}
   #loadline{font-size:11px;letter-spacing:.15em;color:var(--brass);opacity:.9;min-height:16px}
+
+  /* ---------- exhibition program: movement card grid ---------- */
+  #grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:13px;
+    width:min(1180px,94vw);margin:6px 0 10px}
+  .card{position:relative;aspect-ratio:3/3.9;overflow:hidden;cursor:pointer;text-align:left;
+    background:#0d0b09;border:1px solid var(--hairline);
+    opacity:0;transform:translateY(14px);animation:cardIn .55s ease forwards;
+    transition:transform .22s,box-shadow .22s}
+  .card:hover{transform:translateY(-4px);box-shadow:0 14px 34px rgba(0,0,0,.55)}
+  @keyframes cardIn{to{opacity:1;transform:none}}
+  .card .thumb{position:absolute;inset:0;background-size:cover;background-position:center 25%;
+    filter:saturate(.92);transition:transform .45s ease}
+  .card:hover .thumb{transform:scale(1.045)}
+  .card .wash{position:absolute;inset:0}
+  .card .ribbon{position:absolute;top:0;left:0;right:0;height:3px;z-index:2}
+  .card .cbody{position:absolute;left:0;right:0;bottom:0;padding:13px 14px 12px;z-index:2}
+  .card .cyears{font-size:9.5px;letter-spacing:.3em;color:var(--brass)}
+  .card .cname{font-family:'Cormorant Garamond',serif;font-size:21px;line-height:1.08;margin:3px 0 6px;color:var(--bone)}
+  .card .cartists{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;opacity:.72;line-height:1.7}
+  .card .ccount{font-size:9px;letter-spacing:.2em;color:var(--brass);opacity:.85;margin-top:5px;text-transform:uppercase}
+  .card .cintro{position:absolute;inset:0;z-index:3;display:flex;align-items:center;
+    background:rgba(10,8,6,.9);backdrop-filter:blur(3px);opacity:0;transition:opacity .28s;
+    padding:16px;font-size:12px;line-height:1.68;color:var(--bone)}
+  .card:hover .cintro{opacity:1}
+  .card .cintro p em{color:var(--brass);font-style:normal;display:block;margin-top:9px;
+    font-size:9.5px;letter-spacing:.25em;text-transform:uppercase}
+  @media (prefers-reduced-motion: reduce){
+    .card{animation:none;opacity:1;transform:none}
+    .card:hover{transform:none}
+    .card:hover .thumb{transform:none}
+  }
 
   /* ---------- HUD ---------- */
   .hud{position:fixed;z-index:20;pointer-events:none}
@@ -108,13 +142,14 @@
 <div id="menu">
   <div class="eyebrow">A walk through art history</div>
   <h1>The Long Gallery</h1>
-  <div class="range serif" id="menuRange">twelve rooms · five centuries</div>
+  <div class="range serif" id="menuRange">the collection is loading</div>
   <div class="rule"></div>
+  <div id="grid"></div>
+  <div class="enter" id="enterBtn">Enter the Gallery</div>
   <div class="controls">
-    <b>W A S D</b> walk &nbsp;·&nbsp; <b>mouse</b> look &nbsp;·&nbsp; <b>shift</b> stride<br>
-    <b>Q</b> quiz mode &nbsp;·&nbsp; <b>M</b> ambience &nbsp;·&nbsp; <b>esc</b> pause &amp; use timeline
+    <b>W A S D</b> walk &nbsp;·&nbsp; <b>mouse</b> look &nbsp;·&nbsp; <b>shift</b> stride &nbsp;·&nbsp;
+    <b>Q</b> quiz &nbsp;·&nbsp; <b>M</b> ambience &nbsp;·&nbsp; <b>esc</b> this program
   </div>
-  <div class="enter">Click to enter</div>
   <div id="loadline">fetching the collection…</div>
 </div>
 
@@ -197,6 +232,14 @@ try{
   works = await res.json();
 }catch(e){ fatal(`Could not reach the collection.<br><code>${e.message}</code><br>Check the Supabase URL, anon key, and that the artworks table has a public read policy.`); throw e; }
 if(!works.length){ fatal('The <code>artworks</code> table is empty — run the loader script first.'); throw new Error('empty'); }
+
+/* movement introductions (splash cards) — degrades gracefully if table absent */
+const INTROS={};
+try{
+  const mres = await fetch(`${SUPABASE_URL}/rest/v1/movements?select=name,intro`,
+    { headers:{ apikey:SUPABASE_ANON_KEY, Authorization:`Bearer ${SUPABASE_ANON_KEY}` }});
+  if(mres.ok) for(const m of await mres.json()) INTROS[m.name]=m.intro||'';
+}catch(e){ /* cards simply render without hover intros */ }
 
 const yearNum = s => { const m = String(s||'').match(/\d{4}/); return m ? +m[0] : 1700; };
 
@@ -312,6 +355,36 @@ movements.forEach((mv,i)=>{
 });
 const WORLD_LEN=zCursor;
 
+/* ---------- splash: exhibition program card grid ---------- */
+const hexCss  = n => '#'+n.toString(16).padStart(6,'0');
+const hexRgba = (n,a) => `rgba(${(n>>16)&255},${(n>>8)&255},${n&255},${a})`;
+const ROMAN=['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV'];
+const grid=$('grid');
+rooms.forEach((r,i)=>{
+  const artists=[...new Set(r.list.map(w=>w.artist).filter(Boolean))];
+  const names=artists.slice(0,3).join(' · ')+(artists.length>3?`&nbsp; +${artists.length-3}`:'');
+  const card=document.createElement('div'); card.className='card';
+  card.style.animationDelay=`${80+i*55}ms`;
+  card.innerHTML=`
+    <div class="thumb" style="background-image:url('${r.list[0].image_url}')"></div>
+    <div class="wash" style="background:linear-gradient(to top, rgba(10,8,6,.95) 10%, rgba(10,8,6,.35) 48%, rgba(10,8,6,.05) 78%), linear-gradient(${hexRgba(r.st.wall,.2)},${hexRgba(r.st.wall,.2)})"></div>
+    <div class="ribbon" style="background:${hexCss(r.st.wall)}"></div>
+    <div class="cbody">
+      <div class="cyears">${r.years}</div>
+      <div class="cname">${r.mv}</div>
+      <div class="cartists">${names}</div>
+      <div class="ccount">Room ${ROMAN[i]||i+1} · ${r.list.length} work${r.list.length>1?'s':''}</div>
+    </div>
+    <div class="cintro"><p>${INTROS[r.mv]||''}<em>Click to enter this room</em></p></div>`;
+  card.onclick=()=>{ spawnAtRoom(i); canvasEl.requestPointerLock(); };
+  grid.appendChild(card);
+});
+function spawnAtRoom(i){
+  const r=rooms[i];
+  player.pos.set(0,EYE,r.z0+1.7); player.yaw=Math.PI; player.pitch=0; player.vel.set(0,0,0);
+  showToast(`${r.mv} · ${r.years}`);
+}
+
 /* lazy texture loading with progress */
 const loader=new THREE.TextureLoader();
 let loaded=0;
@@ -331,7 +404,7 @@ addEventListener('keydown',e=>{keys[e.code]=true; onKey(e);});
 addEventListener('keyup',e=>{keys[e.code]=false;});
 
 const canvasEl=renderer.domElement;
-menu.addEventListener('click',()=>canvasEl.requestPointerLock());
+$('enterBtn').addEventListener('click',()=>canvasEl.requestPointerLock());
 document.addEventListener('pointerlockchange',()=>{
   const locked=document.pointerLockElement===canvasEl;
   menu.classList.toggle('hidden',locked);
